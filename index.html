@@ -232,7 +232,7 @@ try {
     applyingCloud = false;
   };
   async function writeSnapshot(snapshot, expectedRevision) {
-    if (saving) { saveQueued = true; return; }
+    if (saving) { saveQueued = true; return false; }
     saving = true;
     try {
       await runTransaction(firestore, async tx => {
@@ -252,6 +252,7 @@ try {
       if (pill) { pill.textContent = "● Sincronizado"; pill.classList.add("online"); }
       const status = document.getElementById("storageStatus");
       if (status) status.textContent = "Guardado local y en Firebase";
+      return true;
     } catch (error) {
       if (error.message === "TRENDIA_CONFLICT") {
         conflictDetected = true;
@@ -267,9 +268,17 @@ try {
         const pill = document.getElementById("syncPill");
         if (pill) { pill.textContent = "● Sin sincronizar"; pill.classList.remove("online"); }
       }
+      return false;
     } finally {
       saving = false;
       if (saveQueued) { saveQueued = false; queueSave(); }
+    }
+  }
+  async function requireCloudWrite(snapshot, revision) {
+    const saved = await writeSnapshot(snapshot, revision);
+    if (!saved) {
+      cloudReady = false;
+      throw new Error("TRENDIA_FIRESTORE_WRITE_FAILED");
     }
   }
   function queueSave() {
@@ -298,7 +307,7 @@ try {
       if (importLocal) {
         cloudRevision = cloud.revision;
         cloudReady = true;
-        await writeSnapshot(local, cloudRevision);
+        await requireCloudWrite(local, cloudRevision);
         if (conflictDetected) throw new Error("No se pudo importar por conflicto de versión.");
       } else {
         authStatus.textContent = "Importación pausada. Descarga un respaldo antes de elegir qué datos conservar.";
@@ -308,7 +317,7 @@ try {
     } else {
       cloudRevision = cloud.revision;
       cloudReady = true;
-      if (!cloud.found) await writeSnapshot(local, cloudRevision);
+      if (!cloud.found) await requireCloudWrite(local, cloudRevision);
     }
   } else if (localHas && cloudHas && JSON.stringify(local) !== JSON.stringify({...local, ...cloud.data})) {
     const useCloud = confirm("Hay datos locales y datos en Firebase. Aceptar = usar los datos compartidos de Firebase en este dispositivo. Cancelar = conservar este dispositivo e intentar subir sus datos como versión completa. Descarga un respaldo antes de decidir.");
@@ -321,7 +330,7 @@ try {
     }
     cloudRevision = cloud.revision;
     cloudReady = true;
-    await writeSnapshot(local, cloudRevision);
+    await requireCloudWrite(local, cloudRevision);
   } else if (cloudHas || cloud.found) {
     const merged = {...local, ...cloud.data};
     if (JSON.stringify(local) !== JSON.stringify(merged)) {
@@ -347,7 +356,15 @@ try {
         if (p) { p.textContent = "● Cambios externos: recargar"; p.classList.remove("online"); }
         if (typeof window.toast === "function") window.toast("Hay cambios desde otro dispositivo. Recarga antes de seguir editando para evitar sobrescribirlos.");
       }
-    }, error => console.error("TRENDIA sync listener", error));
+    }, error => {
+      console.error("TRENDIA sync listener", error);
+      cloudReady = false;
+      const p = document.getElementById("syncPill");
+      if (p) { p.textContent = "● Sin sincronizar"; p.classList.remove("online"); }
+      const status = document.getElementById("storageStatus");
+      if (status) status.textContent = "Error de conexión con Firebase";
+      if (typeof window.toast === "function") window.toast("Se perdió la conexión con Firebase. No sigas editando hasta recuperar la sincronización.");
+    });
     return true;
   }
   onAuthStateChanged(auth, async (user) => {
