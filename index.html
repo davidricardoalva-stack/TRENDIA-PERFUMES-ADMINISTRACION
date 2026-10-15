@@ -42,7 +42,7 @@ body.authenticated #authScreen{display:none}
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];const money=n=>'S/ '+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};const uid=p=>p+'-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,5).toUpperCase();const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const defaults=()=>({products:[],lots:[],sales:[],customers:[],expenses:[],vendors:['David','María Emilia'],channels:['Marketplace','WhatsApp','TikTok','Instagram','Facebook','Referido','Otro'],expenseCategories:['Taxi','Combi / entrega','Viáticos','Decants','Frascos 5 ml','Frascos 10 ml','Atomizadores','Empaques','Publicidad','Comisiones','Otros'],paymentMethods:['Yape','Plin','Transferencia','Efectivo','Tarjeta'],settings:{business:'TRENDIA',currency:'PEN',costMethod:'average'},purchases:[],dashboardSnapshots:[]});let db=load();let page='dashboard',editId=null,modalMode='',selectedSaleItems=[],activeFilters={},dashboardMonth=today().slice(0,7);function load(){try{const stored=JSON.parse(localStorage.getItem('trendia-admin-v1')||'{}'),d={...defaults(),...stored};for(const key of ['products','lots','sales','customers','expenses','vendors','channels','expenseCategories','paymentMethods','purchases','dashboardSnapshots'])if(!Array.isArray(d[key]))d[key]=defaults()[key];d.lots=d.lots.map(l=>({...l,qty:Number(l.qty||0),sold:Number(l.sold||0),purchaseCost:Number(l.purchaseCost||0),freightTotal:Number(l.freightTotal||0),unitCost:Number(l.unitCost??(Number(l.purchaseCost||0)+Number(l.freightTotal||0)/Math.max(1,Number(l.qty||1))))}));d.sales=d.sales.map(s=>({...s,items:Array.isArray(s.items)?s.items:[]}));return d}catch{return defaults()}}
-function persist(){try{localStorage.setItem('trendia-admin-v1',JSON.stringify(db));const status=$('#storageStatus');if(status)status.textContent='Guardado automáticamente en este dispositivo';const pill=$('#syncPill');if(pill){pill.textContent='● Modo local';pill.classList.remove('online')}return true}catch(err){toast('No se pudo guardar automáticamente. Descarga un respaldo; el almacenamiento puede estar lleno.');return false}}function toast(m){$('#toast').textContent=m;$('#toast').classList.add('show');setTimeout(()=>$('#toast').classList.remove('show'),2800)}function dateFmt(s){if(!s)return '—';let [y,m,d]=s.split('-');return `${d}/${m}/${y}`}function stockLot(l){return Math.max(0,Number(l.qty||0)-Number(l.sold||0))}function lotsFor(pid){return db.lots.filter(l=>l.productId===pid)}function product(pid){return db.products.find(p=>p.id===pid)}function averageCost(pid){let ls=lotsFor(pid),q=ls.reduce((s,l)=>s+stockLot(l),0);return q?ls.reduce((s,l)=>s+stockLot(l)*Number(l.unitCost||0),0)/q:0}function stock(pid){return lotsFor(pid).reduce((s,l)=>s+stockLot(l),0)}function saleTotals(s){let revenue=0,cost=0;for(const it of s.items||[]){revenue+=Number(it.qty||0)*Number(it.price||0)-Number(it.discount||0);cost+=Number(it.qty||0)*Number(it.unitCost||0)}return {revenue,cost,gross:revenue-cost}}function totalExpenses(){return db.expenses.reduce((s,e)=>s+Number(e.amount||0),0)}function dateSales(){return db.sales.filter(s=>s.date===today())}
+function persist(){try{localStorage.setItem('trendia-admin-v1',JSON.stringify(db));const status=$('#storageStatus');if(status)status.textContent='Guardado localmente';const pill=$('#syncPill');if(pill&&!pill.classList.contains('online'))pill.textContent='● Preparando sincronización';window.dispatchEvent(new CustomEvent('trendia:local-change',{detail:{data:JSON.parse(JSON.stringify(db))}}));return true}catch(err){toast('No se pudo guardar automáticamente. Descarga un respaldo; el almacenamiento puede estar lleno.');return false}}function toast(m){$('#toast').textContent=m;$('#toast').classList.add('show');setTimeout(()=>$('#toast').classList.remove('show'),2800)}function dateFmt(s){if(!s)return '—';let [y,m,d]=s.split('-');return `${d}/${m}/${y}`}function stockLot(l){return Math.max(0,Number(l.qty||0)-Number(l.sold||0))}function lotsFor(pid){return db.lots.filter(l=>l.productId===pid)}function product(pid){return db.products.find(p=>p.id===pid)}function averageCost(pid){let ls=lotsFor(pid),q=ls.reduce((s,l)=>s+stockLot(l),0);return q?ls.reduce((s,l)=>s+stockLot(l)*Number(l.unitCost||0),0)/q:0}function stock(pid){return lotsFor(pid).reduce((s,l)=>s+stockLot(l),0)}function saleTotals(s){let revenue=0,cost=0;for(const it of s.items||[]){revenue+=Number(it.qty||0)*Number(it.price||0)-Number(it.discount||0);cost+=Number(it.qty||0)*Number(it.unitCost||0)}return {revenue,cost,gross:revenue-cost}}function totalExpenses(){return db.expenses.reduce((s,e)=>s+Number(e.amount||0),0)}function dateSales(){return db.sales.filter(s=>s.date===today())}
 function normText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toLowerCase()}
 function normPhone(v){return String(v||'').replace(/\D/g,'').replace(/^51(?=9\d{8}$)/,'')}
 function lotSoldInSale(sale,lotId){return (sale?.items||[]).filter(i=>i.lotId===lotId).reduce((a,i)=>a+Number(i.qty||0),0)}function pageTitle(p){return ({dashboard:'Dashboard',sales:'Ventas',inventory:'Inventario y lotes',customers:'Clientes',expenses:'Gastos operativos',purchases:'Compras e inversión',settings:'Catálogos y ajustes'})[p]||p}
@@ -128,6 +128,7 @@ render();
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, runTransaction, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAVcJ9NqQuNF0uwWJSmIOjYltO-71rEk08",
@@ -188,11 +189,175 @@ try {
     "BcQNzL8gO9NorZKCKCYQ7bT6rkv2",
     "pKdVthSJKPeyttwPWCOdCo4yebg1"
   ]);
+  const firestore = getFirestore(app);
+  const sectionKeys = ["products","lots","sales","customers","expenses","vendors","channels","expenseCategories","paymentMethods","settings","purchases","dashboardSnapshots"];
+  let cloudRevision = null;
+  let applyingCloud = false;
+  let cloudReady = false;
+  let stopMetaListener = null;
+  let saveTimer = null;
+  let saving = false;
+  let saveQueued = false;
+  let conflictDetected = false;
+  const metaRef = doc(firestore, "trendia", "state", "meta", "version");
+  const sectionRef = key => doc(firestore, "trendia", "state", "sections", key);
+  const localSnapshot = () => {
+    try { return JSON.parse(localStorage.getItem("trendia-admin-v1") || "{}"); }
+    catch { return {}; }
+  };
+  const hasLocalData = data => ["products","lots","sales","customers","expenses","purchases"].some(k => Array.isArray(data[k]) && data[k].length > 0);
+  const normalizeCloud = async () => {
+    const metaSnap = await getDoc(metaRef);
+    cloudRevision = metaSnap.exists() ? Number(metaSnap.data().revision || 0) : 0;
+    const data = {};
+    let found = false;
+    for (const key of sectionKeys) {
+      const snap = await getDoc(sectionRef(key));
+      if (snap.exists()) { data[key] = snap.data().value; found = true; }
+    }
+    return { data, found, revision: cloudRevision };
+  };
+  const applyCloudLocally = data => {
+    applyingCloud = true;
+    localStorage.setItem("trendia-admin-v1", JSON.stringify(data));
+    applyingCloud = false;
+  };
+  async function writeSnapshot(snapshot, expectedRevision) {
+    if (saving) { saveQueued = true; return; }
+    saving = true;
+    try {
+      await runTransaction(firestore, async tx => {
+        const metaSnap = await tx.get(metaRef);
+        const actual = metaSnap.exists() ? Number(metaSnap.data().revision || 0) : 0;
+        if (actual !== expectedRevision) throw new Error("TRENDIA_CONFLICT");
+        const next = actual + 1;
+        for (const key of sectionKeys) {
+          const value = snapshot[key] ?? (key === "settings" ? {business:"TRENDIA",currency:"PEN",costMethod:"average"} : []);
+          if (JSON.stringify(value).length > 700000) throw new Error("TRENDIA_SECTION_TOO_LARGE:" + key);
+          tx.set(sectionRef(key), { value, updatedAt: new Date().toISOString(), updatedBy: auth.currentUser.uid });
+        }
+        tx.set(metaRef, { revision: next, updatedAt: new Date().toISOString(), updatedBy: auth.currentUser.uid });
+      });
+      cloudRevision = expectedRevision + 1;
+      const pill = document.getElementById("syncPill");
+      if (pill) { pill.textContent = "● Sincronizado"; pill.classList.add("online"); }
+      const status = document.getElementById("storageStatus");
+      if (status) status.textContent = "Guardado local y en Firebase";
+    } catch (error) {
+      if (error.message === "TRENDIA_CONFLICT") {
+        conflictDetected = true;
+        cloudReady = false;
+        const pill = document.getElementById("syncPill");
+        if (pill) { pill.textContent = "● Conflicto: recargar"; pill.classList.remove("online"); }
+        if (typeof window.toast === "function") window.toast("Otro dispositivo cambió los datos. Para evitar perder información, deja de editar y recarga la página.");
+      } else if (error.message.startsWith("TRENDIA_SECTION_TOO_LARGE:")) {
+        if (typeof window.toast === "function") window.toast("La sección " + error.message.split(":")[1] + " creció demasiado para el modo de sincronización inicial. No se subió este cambio; descarga un respaldo y avisa al administrador.");
+      } else {
+        console.error("TRENDIA Firestore save failed", error);
+        if (typeof window.toast === "function") window.toast("No se pudo sincronizar con Firebase. Tus datos siguen guardados localmente; descarga un respaldo.");
+        const pill = document.getElementById("syncPill");
+        if (pill) { pill.textContent = "● Sin sincronizar"; pill.classList.remove("online"); }
+      }
+    } finally {
+      saving = false;
+      if (saveQueued) { saveQueued = false; queueSave(); }
+    }
+  }
+  function queueSave() {
+    if (!cloudReady || applyingCloud || conflictDetected) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      const snapshot = localSnapshot();
+      writeSnapshot(snapshot, cloudRevision);
+    }, 900);
+  }
+  window.addEventListener("trendia:local-change", () => queueSave());
+  async function startCloud(user) {
+    authStatus.textContent = "Cargando datos compartidos de TRENDIA…";
+    const local = localSnapshot();
+    const cloud = await normalizeCloud();
+    if (!cloud.found) {
+      if (hasLocalData(local)) {
+        const importLocal = confirm("Firebase todavía no tiene datos. ¿Quieres importar a la nube los datos guardados en ESTE navegador? Hazlo solo si este es el dispositivo que contiene tu inventario y ventas correctos. Si no estás seguro, pulsa Cancelar y descarga un respaldo primero.");
+        if (importLocal) {
+          cloudRevision = cloud.revision;
+          cloudReady = true;
+          await writeSnapshot(local, cloudRevision);
+          if (conflictDetected) throw new Error("No se pudo importar por conflicto de versión.");
+        } else {
+          authStatus.textContent = "Importación pausada. Descarga un respaldo y vuelve a iniciar sesión cuando estés listo.";
+          await signOut(auth);
+          return false;
+        }
+      } else {
+        cloudRevision = cloud.revision;
+        cloudReady = true;
+        await writeSnapshot(local, cloudRevision);
+      }
+    } else {
+      const localHas = hasLocalData(local);
+      const cloudHas = hasLocalData(cloud.data);
+      if (localHas && cloudHas && JSON.stringify(local) !== JSON.stringify({...local, ...cloud.data})) {
+        const useCloud = confirm("Hay datos locales y datos en Firebase. Aceptar = usar los datos compartidos de Firebase en este dispositivo. Cancelar = conservar este dispositivo e intentar subir sus datos como versión completa. Descarga un respaldo antes de decidir.");
+        if (useCloud) {
+          const merged = {...local, ...cloud.data};
+          applyCloudLocally(merged);
+          sessionStorage.setItem("trendia-reload-after-cloud", "1");
+          location.reload();
+          return false;
+        }
+        cloudRevision = cloud.revision;
+        cloudReady = true;
+        await writeSnapshot({...local, ...cloud.data}, cloudRevision);
+      } else if (cloudHas || cloud.found) {
+        const merged = {...local, ...cloud.data};
+        if (JSON.stringify(local) !== JSON.stringify(merged)) {
+          applyCloudLocally(merged);
+          sessionStorage.setItem("trendia-reload-after-cloud", "1");
+          location.reload();
+          return false;
+        }
+        cloudRevision = cloud.revision;
+        cloudReady = true;
+      }
+    }
+    if (!cloudReady) { cloudReady = true; }
+    authStatus.textContent = "";
+    const pill = document.getElementById("syncPill");
+    if (pill) { pill.textContent = "● Sincronizado"; pill.classList.add("online"); }
+    if (stopMetaListener) stopMetaListener();
+    stopMetaListener = onSnapshot(metaRef, snap => {
+      const revision = snap.exists() ? Number(snap.data().revision || 0) : 0;
+      if (cloudRevision !== null && revision !== cloudRevision && !saving) {
+        conflictDetected = true;
+        cloudReady = false;
+        const p = document.getElementById("syncPill");
+        if (p) { p.textContent = "● Cambios externos: recargar"; p.classList.remove("online"); }
+        if (typeof window.toast === "function") window.toast("Hay cambios desde otro dispositivo. Recarga antes de seguir editando para evitar sobrescribirlos.");
+      }
+    }, error => console.error("TRENDIA sync listener", error));
+    return true;
+  }
   onAuthStateChanged(auth, async (user) => {
+    cloudReady = false;
+    conflictDetected = false;
+    if (stopMetaListener) { stopMetaListener(); stopMetaListener = null; }
     if (user && allowedUserIds.has(user.uid)) {
-      document.body.classList.add("authenticated");
-      logoutBtn.style.display = "inline-flex";
-      authStatus.textContent = "";
+      try {
+        const ready = await startCloud(user);
+        if (ready && auth.currentUser && auth.currentUser.uid === user.uid) {
+          document.body.classList.add("authenticated");
+          logoutBtn.style.display = "inline-flex";
+        } else {
+          document.body.classList.remove("authenticated");
+          logoutBtn.style.display = "none";
+        }
+      } catch (error) {
+        console.error("TRENDIA cloud initialization", error);
+        authStatus.textContent = "No se pudieron cargar los datos compartidos. El panel sigue bloqueado para evitar cambios inseguros. Revisa las reglas de Firestore y vuelve a intentarlo.";
+        document.body.classList.remove("authenticated");
+        logoutBtn.style.display = "none";
+      }
     } else {
       document.body.classList.remove("authenticated");
       logoutBtn.style.display = "none";
