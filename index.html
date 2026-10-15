@@ -184,16 +184,25 @@ try {
   logoutBtn.addEventListener("click", async () => {
     try { await signOut(auth); } catch { authStatus.textContent = "No se pudo cerrar la sesión. Inténtalo de nuevo."; }
   });
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
+  const allowedUserIds = new Set([
+    "BcQNzL8gO9NorZKCKCYQ7bT6rkv2",
+    "pKdVthSJKPeyttwPWCOdCo4yebg1"
+  ]);
+  onAuthStateChanged(auth, async (user) => {
+    if (user && allowedUserIds.has(user.uid)) {
       document.body.classList.add("authenticated");
       logoutBtn.style.display = "inline-flex";
       authStatus.textContent = "";
     } else {
       document.body.classList.remove("authenticated");
       logoutBtn.style.display = "none";
-      authError.style.display = "none";
-      authStatus.textContent = "Inicia sesión con la cuenta autorizada de TRENDIA.";
+      if (user) {
+        authStatus.textContent = "Esta cuenta no está autorizada para TRENDIA.";
+        try { await signOut(auth); } catch {}
+      } else {
+        authError.style.display = "none";
+        authStatus.textContent = "Inicia sesión con la cuenta autorizada de TRENDIA.";
+      }
     }
   });
 } catch (error) {
