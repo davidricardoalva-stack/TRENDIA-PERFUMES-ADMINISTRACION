@@ -276,51 +276,54 @@ try {
     authStatus.textContent = "Cargando datos compartidos de TRENDIA…";
     const local = localSnapshot();
     const cloud = await normalizeCloud();
-    if (!cloud.found) {
-      if (hasLocalData(local)) {
-        const importLocal = confirm("Firebase todavía no tiene datos. ¿Quieres importar a la nube los datos guardados en ESTE navegador? Hazlo solo si este es el dispositivo que contiene tu inventario y ventas correctos. Si no estás seguro, pulsa Cancelar y descarga un respaldo primero.");
-        if (importLocal) {
-          cloudRevision = cloud.revision;
-          cloudReady = true;
-          await writeSnapshot(local, cloudRevision);
-          if (conflictDetected) throw new Error("No se pudo importar por conflicto de versión.");
-        } else {
-          authStatus.textContent = "Importación pausada. Descarga un respaldo y vuelve a iniciar sesión cuando estés listo.";
-          await signOut(auth);
-          return false;
-        }
-      } else {
+    const localHas = hasLocalData(local);
+  const cloudHas = hasLocalData(cloud.data);
+
+  // Never replace real local inventory with an empty Firestore structure.
+  if (!cloud.found || (localHas && !cloudHas)) {
+    if (localHas) {
+      const promptText = cloud.found
+        ? "Firebase no contiene todavía productos, lotes ni ventas. ¿Quieres importar a la nube los datos guardados en ESTE navegador? Aceptar = importar este inventario. Cancelar = no tocar datos y cerrar sesión. Descarga un respaldo si tienes dudas."
+        : "Firebase todavía no tiene datos. ¿Quieres importar a la nube los datos guardados en ESTE navegador? Aceptar = importar este inventario. Cancelar = no tocar datos y cerrar sesión. Descarga un respaldo si tienes dudas.";
+      const importLocal = confirm(promptText);
+      if (importLocal) {
         cloudRevision = cloud.revision;
         cloudReady = true;
         await writeSnapshot(local, cloudRevision);
+        if (conflictDetected) throw new Error("No se pudo importar por conflicto de versión.");
+      } else {
+        authStatus.textContent = "Importación pausada. Descarga un respaldo antes de elegir qué datos conservar.";
+        await signOut(auth);
+        return false;
       }
     } else {
-      const localHas = hasLocalData(local);
-      const cloudHas = hasLocalData(cloud.data);
-      if (localHas && cloudHas && JSON.stringify(local) !== JSON.stringify({...local, ...cloud.data})) {
-        const useCloud = confirm("Hay datos locales y datos en Firebase. Aceptar = usar los datos compartidos de Firebase en este dispositivo. Cancelar = conservar este dispositivo e intentar subir sus datos como versión completa. Descarga un respaldo antes de decidir.");
-        if (useCloud) {
-          const merged = {...local, ...cloud.data};
-          applyCloudLocally(merged);
-          sessionStorage.setItem("trendia-reload-after-cloud", "1");
-          location.reload();
-          return false;
-        }
-        cloudRevision = cloud.revision;
-        cloudReady = true;
-        await writeSnapshot(local, cloudRevision);
-      } else if (cloudHas || cloud.found) {
-        const merged = {...local, ...cloud.data};
-        if (JSON.stringify(local) !== JSON.stringify(merged)) {
-          applyCloudLocally(merged);
-          sessionStorage.setItem("trendia-reload-after-cloud", "1");
-          location.reload();
-          return false;
-        }
-        cloudRevision = cloud.revision;
-        cloudReady = true;
-      }
+      cloudRevision = cloud.revision;
+      cloudReady = true;
+      if (!cloud.found) await writeSnapshot(local, cloudRevision);
     }
+  } else if (localHas && cloudHas && JSON.stringify(local) !== JSON.stringify({...local, ...cloud.data})) {
+    const useCloud = confirm("Hay datos locales y datos en Firebase. Aceptar = usar los datos compartidos de Firebase en este dispositivo. Cancelar = conservar este dispositivo e intentar subir sus datos como versión completa. Descarga un respaldo antes de decidir.");
+    if (useCloud) {
+      const merged = {...local, ...cloud.data};
+      applyCloudLocally(merged);
+      sessionStorage.setItem("trendia-reload-after-cloud", "1");
+      location.reload();
+      return false;
+    }
+    cloudRevision = cloud.revision;
+    cloudReady = true;
+    await writeSnapshot(local, cloudRevision);
+  } else if (cloudHas || cloud.found) {
+    const merged = {...local, ...cloud.data};
+    if (JSON.stringify(local) !== JSON.stringify(merged)) {
+      applyCloudLocally(merged);
+      sessionStorage.setItem("trendia-reload-after-cloud", "1");
+      location.reload();
+      return false;
+    }
+    cloudRevision = cloud.revision;
+    cloudReady = true;
+  }
     if (!cloudReady) { cloudReady = true; }
     authStatus.textContent = "";
     const pill = document.getElementById("syncPill");
