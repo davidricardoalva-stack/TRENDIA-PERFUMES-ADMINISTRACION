@@ -308,7 +308,7 @@ try {
         }
         cloudRevision = cloud.revision;
         cloudReady = true;
-        await writeSnapshot({...local, ...cloud.data}, cloudRevision);
+        await writeSnapshot(local, cloudRevision);
       } else if (cloudHas || cloud.found) {
         const merged = {...local, ...cloud.data};
         if (JSON.stringify(local) !== JSON.stringify(merged)) {
