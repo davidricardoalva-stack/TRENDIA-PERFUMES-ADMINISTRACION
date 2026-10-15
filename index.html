@@ -20,7 +20,6 @@ body.authenticated #authScreen{display:none}
 .auth-card input{width:100%;border:1px solid #dfe2e9;border-radius:9px;padding:12px;outline:none}
 .auth-card input:focus{border-color:#e85b2a;box-shadow:0 0 0 3px #e85b2a18}
 .auth-card button{width:100%;margin-top:16px}
-.auth-card button.auth-reset{border:0;background:transparent;color:#c84e24;text-decoration:underline;font-weight:650;padding:5px 8px;margin-top:10px}
 #authError{display:none;background:#fff0f0;color:#a82b2b;padding:10px;border-radius:8px;font-size:12px;margin-top:12px}
 #authStatus{font-size:12px;color:#707784;margin-top:12px;min-height:16px}
 </style></head>
@@ -30,13 +29,12 @@ body.authenticated #authScreen{display:none}
     <h1>Iniciar sesión</h1>
     <p>Acceso privado para el equipo autorizado de TRENDIA.</p>
     <form id="authForm">
-      <label for="authEmail">Correo electrónico</label>
-      <input id="authEmail" type="email" autocomplete="username" required>
+      <label for="authUsername">Usuario</label>
+      <input id="authUsername" type="text" autocomplete="username" placeholder="TRENDIAPER" autocapitalize="characters" spellcheck="false" required>
       <label for="authPassword">Contraseña</label>
       <input id="authPassword" type="password" autocomplete="current-password" required>
       <button class="btn primary" id="authSubmit" type="submit">Entrar al panel</button>
     </form>
-    <button type="button" id="resetPasswordBtn" class="auth-reset">Olvidé mi contraseña</button>
     <div id="authError" role="alert"></div><div id="authStatus" aria-live="polite"></div>
   </section>
 </div>
@@ -129,7 +127,7 @@ render();
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, runTransaction, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -144,10 +142,9 @@ const firebaseConfig = {
 
 const authScreen = document.getElementById("authScreen");
 const authForm = document.getElementById("authForm");
-const authEmail = document.getElementById("authEmail");
+const authUsername = document.getElementById("authUsername");
 const authPassword = document.getElementById("authPassword");
 const authSubmit = document.getElementById("authSubmit");
-const resetPasswordBtn = document.getElementById("resetPasswordBtn");
 const authError = document.getElementById("authError");
 const authStatus = document.getElementById("authStatus");
 const logoutBtn = document.getElementById("logoutBtn");
@@ -169,42 +166,23 @@ function friendlyError(code) {
 try {
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  resetPasswordBtn.addEventListener("click", async () => {
-    authError.style.display = "none";
-    authStatus.textContent = "";
-    const email = authEmail.value.trim();
-    if (!email || !authEmail.checkValidity()) {
-      authStatus.textContent = "Primero escribe tu correo electrónico correctamente.";
-      authEmail.focus();
-      return;
-    }
-    resetPasswordBtn.disabled = true;
-    resetPasswordBtn.textContent = "Enviando enlace…";
-    try {
-      await sendPasswordResetEmail(auth, email);
-      authStatus.textContent = "Si este correo está registrado en TRENDIA, recibirás un enlace para restablecer la contraseña. Revisa Recibidos, Spam y Promociones.";
-    } catch (error) {
-      const messages = {
-        "auth/invalid-email": "El correo no tiene un formato válido.",
-        "auth/too-many-requests": "Hubo demasiados intentos. Espera un momento antes de volver a probar.",
-        "auth/network-request-failed": "No hay conexión. Revisa internet e inténtalo otra vez.",
-        "auth/operation-not-allowed": "La recuperación por correo no está habilitada en Firebase Authentication."
-      };
-      authStatus.textContent = messages[error.code] || "No se pudo solicitar el enlace. Revisa Firebase Authentication y vuelve a intentarlo.";
-      console.error("TRENDIA password reset request failed", error.code);
-    } finally {
-      resetPasswordBtn.disabled = false;
-      resetPasswordBtn.textContent = "Olvidé mi contraseña";
-    }
-  });
   authForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     authError.style.display = "none";
     authStatus.textContent = "";
     authSubmit.disabled = true;
     authSubmit.textContent = "Verificando…";
+    const username = authUsername.value.trim().toUpperCase();
+    if (username !== "TRENDIAPER") {
+      showError("Usuario incorrecto. Escribe TRENDIAPER.");
+      authSubmit.disabled = false;
+      authSubmit.textContent = "Entrar al panel";
+      authUsername.focus();
+      return;
+    }
     try {
-      await signInWithEmailAndPassword(auth, authEmail.value.trim(), authPassword.value);
+      // El usuario compartido se valida en Firebase Auth; la contraseña no se guarda en el código.
+      await signInWithEmailAndPassword(auth, "davidricardoalva@gmail.com", authPassword.value);
       authPassword.value = "";
     } catch (error) {
       showError(friendlyError(error.code));
