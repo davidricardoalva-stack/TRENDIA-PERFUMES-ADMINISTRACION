@@ -163,7 +163,9 @@ if(!v.date||!Number.isInteger(qty)||qty<1||!Number.isFinite(pc)||pc<0||!Number.i
 const sku=(v.sku||'').trim().toUpperCase(),name=(v.productName||'').trim();
 if(!sku)throw Error('Ingresa el SKU del producto.');
 if(!name)throw Error('Ingresa el nombre del producto.');
-const previousProductId=old?old.productId:'';
+const previousProductId=old?old.productId:'',code=(v.code||'').trim()||uid('LOTE');
+if(db.lots.some(x=>normText(x.code)===normText(code)&&x.id!==editId))throw Error('Ya existe un lote con ese código.');
+if(old&&Number(old.sold||0)>0&&(qty!==Number(old.qty)||pc!==Number(old.purchaseCost)||fr!==Number(old.freightTotal)||sp!==Number(old.salePrice??product(old.productId)?.salePrice??0)))throw Error('Este lote tiene ventas asociadas. No puedes cambiar cantidad, costo, flete ni precio.');
 const duplicateSku=db.products.find(p=>String(p.sku||'').trim().toUpperCase()===sku&&p.id!==previousProductId);
 if(duplicateSku&&normText(duplicateSku.name)!==normText(name))throw Error('Ese SKU pertenece a "'+duplicateSku.name+'". Usa su SKU correcto; no se modificó ningún producto.');
 const duplicateName=db.products.find(p=>normText(p.name)===normText(name)&&String(p.sku||'').trim().toUpperCase()!==sku&&p.id!==previousProductId);
@@ -178,9 +180,8 @@ db.products.push(target);
 const updated={...target,sku,category:(v.category||'Perfumería').trim(),name,description:(v.description||'').trim(),brand:(v.brand||'').trim(),size:(v.size||'').trim(),acquisitionPrice:acq,salePrice:sp,minStock,status:['Activo','Inactivo'].includes(v.status)?v.status:'Activo',imageData:v.imageData||target.imageData||''};
 db.products=db.products.map(p=>p.id===target.id?updated:p);target=updated;
 }
-const productId=target.id,code=(v.code||'').trim()||uid('LOTE');
-if(db.lots.some(x=>normText(x.code)===normText(code)&&x.id!==editId))throw Error('Ya existe un lote con ese código.');
-if(old&&Number(old.sold||0)>0&&(qty!==Number(old.qty)||pc!==Number(old.purchaseCost)||fr!==Number(old.freightTotal)||sp!==Number(old.salePrice??product(old.productId)?.salePrice??0)||productId!==old.productId))throw Error('Este lote tiene ventas asociadas. No puedes cambiar cantidad, costo, flete, precio ni producto.');
+const productId=target.id;
+if(old&&Number(old.sold||0)>0&&productId!==old.productId)throw Error('Este lote tiene ventas asociadas y no se puede cambiar de producto.');
 const l={id:editId||uid('lot'),code,date:v.date,productId,qty,sold:Number(old?.sold||0),purchaseCost:pc,salePrice:sp,freightTotal:fr,unitCost:pc+fr/qty,supplier:(v.supplier||'').trim(),note:(v.note||'').trim()};
 if(old){db.lots=db.lots.map(x=>x.id===old.id?l:x);db.purchases=db.purchases.map(x=>x.id===old.id?{...x,date:l.date,productId:l.productId,qty,amount:qty*pc+fr}:x)}
 else{db.lots.push(l);db.purchases.push({id:l.id,date:l.date,productId:l.productId,qty,amount:qty*pc+fr})}
