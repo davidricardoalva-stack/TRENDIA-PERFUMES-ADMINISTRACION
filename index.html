@@ -22,8 +22,276 @@
 #inventoryTable .sub{overflow-wrap:anywhere}
 }@media(max-width:680px){.shell{display:block}.sidebar{position:fixed;z-index:30;top:0;bottom:0;left:-260px;width:245px;transition:left .2s;box-shadow:10px 0 30px #0002}.sidebar.open{left:0}.topbar{height:68px;padding:0 14px}.mobile-menu{display:inline-flex}.topbar h2{font-size:16px}.topbar p{display:none}.content{padding:18px 13px}.page-head{align-items:flex-start}.page-head h1{font-size:22px}.page-head .btn{font-size:12px;padding:9px}.cards{gap:9px}.metric{padding:14px}.metric strong{font-size:21px}.metric-icon{width:30px;height:30px}.panel{padding:15px}.top-actions .pill{display:none}}
 
-@media(max-width:520px){.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}@media(max-width:680px){.modal-back{align-items:flex-start;padding:8px;overflow-y:auto}.modal{width:100%;max-height:calc(100dvh - 16px);max-height:calc(100vh - 16px);padding:17px;border-radius:14px;margin:auto 0}.modal .form-actions{position:sticky;bottom:-17px;background:#fff;padding:12px 0 2px;margin-top:8px;z-index:2}.modal .form-actions .btn{flex:1;min-height:42px}}</style></head>
-<body><div class="shell"><aside class="sidebar" id="sidebar"><div class="brand"><div class="logo">🛍</div><div><strong>TRENDIA</strong><small>ADMINISTRACIÓN · PERFUMERÍA</small></div></div><div><div class="nav-label">GESTIÓN</div><nav class="nav" id="nav"><button class="active" data-page="dashboard"><span class="ico">▦</span>Dashboard</button><button data-page="sales"><span class="ico">↗</span>Ventas</button><button data-page="inventory"><span class="ico">▣</span>Inventario y lotes</button><button data-page="customers"><span class="ico">♙</span>Clientes</button><button data-page="expenses"><span class="ico">↘</span>Gastos operativos</button><button data-page="purchases"><span class="ico">＋</span>Compras e inversión</button></nav></div><div><div class="nav-label">CONFIGURACIÓN</div><nav class="nav"><button data-page="settings"><span class="ico">⚙</span>Catálogos y ajustes</button></nav></div><div class="side-foot">Sistema administrativo<br><b>TRENDIA · Vive la tendencia</b><br><span id="storageStatus">Guardado automático local</span></div></aside><main class="main"><header class="topbar"><div style="display:flex;align-items:center;gap:12px"><button class="btn mobile-menu" id="menuBtn">☰</button><div><h2 id="topTitle">Dashboard</h2><p id="todayLabel"></p></div></div><div class="top-actions"><button class="btn small" onclick="backupData()" title="Descargar respaldo actualizado">⇩ Respaldo</button><button class="btn small" onclick="exportAllExcel()" title="Descargar todas las tablas en Excel">▦ Excel</button><span class="pill" id="syncPill" title="Los datos se guardan solo en este navegador; no hay sincronización entre dispositivos.">● Solo este dispositivo</span><div class="avatar" title="Administración TRENDIA">T</div></div></header><div class="content" id="content"></div></main></div><div class="modal-back" id="modalBack"><div class="modal" id="modal"></div></div><div class="toast" id="toast"></div><script>
+@media(max-width:520px){.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}@media(max-width:680px){.modal-back{align-items:flex-start;padding:8px;overflow-y:auto}.modal{width:100%;max-height:calc(100dvh - 16px);max-height:calc(100vh - 16px);padding:17px;border-radius:14px;margin:auto 0}.modal .form-actions{position:sticky;bottom:-17px;background:#fff;padding:12px 0 2px;margin-top:8px;z-index:2}.modal .form-actions .btn{flex:1;min-height:42px}}#authScreen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#f5f6fa;padding:20px}.auth-card{width:min(420px,100%);background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:0 20px 70px #1112}.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}.auth-card h1{font-size:24px;margin:0 0 8px}.auth-card p{color:var(--muted);font-size:13px;margin:0 0 20px}.auth-card form{display:grid;gap:10px}.auth-card input{width:100%;padding:12px;border:1px solid var(--line);border-radius:9px}.auth-card button{margin-top:8px;width:100%}#authError{display:none;color:#b42318;font-size:13px;margin-top:12px}#authStatus{font-size:13px;color:var(--muted);margin-top:12px}body:not(.authenticated)>.shell{visibility:hidden}body.authenticated #authScreen{display:none}</style></head>
+<body><div class="shell"><aside class="sidebar" id="sidebar"><div class="brand"><div class="logo">🛍</div><div><strong>TRENDIA</strong><small>ADMINISTRACIÓN · PERFUMERÍA</small></div></div><div><div class="nav-label">GESTIÓN</div><nav class="nav" id="nav"><button class="active" data-page="dashboard"><span class="ico">▦</span>Dashboard</button><button data-page="sales"><span class="ico">↗</span>Ventas</button><button data-page="inventory"><span class="ico">▣</span>Inventario y lotes</button><button data-page="customers"><span class="ico">♙</span>Clientes</button><button data-page="expenses"><span class="ico">↘</span>Gastos operativos</button><button data-page="purchases"><span class="ico">＋</span>Compras e inversión</button></nav></div><div><div class="nav-label">CONFIGURACIÓN</div><nav class="nav"><button data-page="settings"><span class="ico">⚙</span>Catálogos y ajustes</button></nav></div><div class="side-foot">Sistema administrativo<br><b>TRENDIA · Vive la tendencia</b><br><span id="storageStatus">Guardado automático local</span></div></aside><main class="main"><header class="topbar"><div style="display:flex;align-items:center;gap:12px"><button class="btn mobile-menu" id="menuBtn">☰</button><div><h2 id="topTitle">Dashboard</h2><p id="todayLabel"></p></div></div><div class="top-actions"><button class="btn small" onclick="backupData()" title="Descargar respaldo actualizado">⇩ Respaldo</button><button class="btn small" onclick="exportAllExcel()" title="Descargar todas las tablas en Excel">▦ Excel</button><span class="pill" id="syncPill" title="Los datos se guardan solo en este navegador; no hay sincronización entre dispositivos.">● Solo este dispositivo</span><button class="btn" id="logoutBtn" type="button" style="display:none;padding:7px 10px">Salir</button><div class="avatar" title="Administración TRENDIA">T</div></div></header><div class="content" id="content"></div></main></div><div class="modal-back" id="modalBack"><div class="modal" id="modal"></div></div><div class="toast" id="toast"></div><div id="authScreen" role="main" aria-label="Inicio de sesión TRENDIA">
+  <section class="auth-card">
+    <div class="auth-brand"><div class="logo">🛍</div><div><strong>TRENDIA</strong><div style="font-size:11px;color:#707784">ADMINISTRACIÓN · PERFUMERÍA</div></div></div>
+    <h1>Iniciar sesión</h1>
+    <p>Acceso privado para el equipo autorizado de TRENDIA.</p>
+    <form id="authForm">
+      <label for="authEmail">Correo electrónico</label>
+      <input id="authEmail" type="email" autocomplete="username" required>
+      <label for="authPassword">Contraseña</label>
+      <input id="authPassword" type="password" autocomplete="current-password" required>
+      <button class="btn primary" id="authSubmit" type="submit">Entrar al panel</button>
+    </form>
+    <div id="authError" role="alert"></div><div id="authStatus" aria-live="polite"></div>
+  </section>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, runTransaction, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAVcJ9NqQuNF0uwWJSmIOjYltO-71rEk08",
+  authDomain: "trendia--perfumes.firebaseapp.com",
+  projectId: "trendia--perfumes",
+  storageBucket: "trendia--perfumes.firebasestorage.app",
+  messagingSenderId: "834262686026",
+  appId: "1:834262686026:web:e71235e1aac9d53c1e09b3",
+  measurementId: "G-XX6Q3SD3B4"
+};
+
+const authScreen = document.getElementById("authScreen");
+const authForm = document.getElementById("authForm");
+const authEmail = document.getElementById("authEmail");
+const authPassword = document.getElementById("authPassword");
+const authSubmit = document.getElementById("authSubmit");
+const authError = document.getElementById("authError");
+const authStatus = document.getElementById("authStatus");
+const logoutBtn = document.getElementById("logoutBtn");
+
+function showError(message) {
+  authError.textContent = message;
+  authError.style.display = "block";
+}
+function friendlyError(code) {
+  const messages = {
+    "auth/invalid-credential": "Correo o contraseña incorrectos.",
+    "auth/invalid-email": "Escribe un correo electrónico válido.",
+    "auth/too-many-requests": "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
+    "auth/network-request-failed": "No hay conexión. Revisa internet e inténtalo otra vez.",
+    "auth/user-disabled": "Esta cuenta está deshabilitada. Contacta al administrador."
+  };
+  return messages[code] || "No se pudo iniciar sesión. Comprueba tus datos e inténtalo nuevamente.";
+}
+try {
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  authForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    authError.style.display = "none";
+    authStatus.textContent = "";
+    authSubmit.disabled = true;
+    authSubmit.textContent = "Verificando…";
+    try {
+      await signInWithEmailAndPassword(auth, authEmail.value.trim(), authPassword.value);
+      authPassword.value = "";
+    } catch (error) {
+      showError(friendlyError(error.code));
+    } finally {
+      authSubmit.disabled = false;
+      authSubmit.textContent = "Entrar al panel";
+    }
+  });
+  logoutBtn.addEventListener("click", async () => {
+    try { await signOut(auth); } catch { authStatus.textContent = "No se pudo cerrar la sesión. Inténtalo de nuevo."; }
+  });
+  const allowedUserIds = new Set([
+    "BcQNzL8gO9NorZKCKCYQ7bT6rkv2",
+    "pKdVthSJKPeyttwPWCOdCo4yebg1"
+  ]);
+  const firestore = getFirestore(app);
+  const sectionKeys = ["products","lots","sales","customers","expenses","vendors","channels","expenseCategories","paymentMethods","settings","purchases","dashboardSnapshots"];
+  let cloudRevision = null;
+  let applyingCloud = false;
+  let cloudReady = false;
+  let stopMetaListener = null;
+  let saveTimer = null;
+  let saving = false;
+  let saveQueued = false;
+  let conflictDetected = false;
+  const metaRef = doc(firestore, "trendia", "state", "meta", "version");
+  const sectionRef = key => doc(firestore, "trendia", "state", "sections", key);
+  const localSnapshot = () => {
+    try { return JSON.parse(localStorage.getItem("trendia-admin-v1") || "{}"); }
+    catch { return {}; }
+  };
+  const hasLocalData = data => ["products","lots","sales","customers","expenses","purchases"].some(k => Array.isArray(data[k]) && data[k].length > 0);
+  const normalizeCloud = async () => {
+    const metaSnap = await getDoc(metaRef);
+    cloudRevision = metaSnap.exists() ? Number(metaSnap.data().revision || 0) : 0;
+    const data = {};
+    let found = false;
+    for (const key of sectionKeys) {
+      const snap = await getDoc(sectionRef(key));
+      if (snap.exists()) { data[key] = snap.data().value; found = true; }
+    }
+    return { data, found, revision: cloudRevision };
+  };
+  const applyCloudLocally = data => {
+    applyingCloud = true;
+    localStorage.setItem("trendia-admin-v1", JSON.stringify(data));
+    applyingCloud = false;
+  };
+  async function writeSnapshot(snapshot, expectedRevision) {
+    if (saving) { saveQueued = true; return; }
+    saving = true;
+    try {
+      await runTransaction(firestore, async tx => {
+        const metaSnap = await tx.get(metaRef);
+        const actual = metaSnap.exists() ? Number(metaSnap.data().revision || 0) : 0;
+        if (actual !== expectedRevision) throw new Error("TRENDIA_CONFLICT");
+        const next = actual + 1;
+        for (const key of sectionKeys) {
+          const value = snapshot[key] ?? (key === "settings" ? {business:"TRENDIA",currency:"PEN",costMethod:"average"} : []);
+          if (JSON.stringify(value).length > 700000) throw new Error("TRENDIA_SECTION_TOO_LARGE:" + key);
+          tx.set(sectionRef(key), { value, updatedAt: new Date().toISOString(), updatedBy: auth.currentUser.uid });
+        }
+        tx.set(metaRef, { revision: next, updatedAt: new Date().toISOString(), updatedBy: auth.currentUser.uid });
+      });
+      cloudRevision = expectedRevision + 1;
+      const pill = document.getElementById("syncPill");
+      if (pill) { pill.textContent = "● Sincronizado"; pill.classList.add("online"); }
+      const status = document.getElementById("storageStatus");
+      if (status) status.textContent = "Guardado local y en Firebase";
+    } catch (error) {
+      if (error.message === "TRENDIA_CONFLICT") {
+        conflictDetected = true;
+        cloudReady = false;
+        const pill = document.getElementById("syncPill");
+        if (pill) { pill.textContent = "● Conflicto: recargar"; pill.classList.remove("online"); }
+        if (typeof window.toast === "function") window.toast("Otro dispositivo cambió los datos. Para evitar perder información, deja de editar y recarga la página.");
+      } else if (error.message.startsWith("TRENDIA_SECTION_TOO_LARGE:")) {
+        if (typeof window.toast === "function") window.toast("La sección " + error.message.split(":")[1] + " creció demasiado para el modo de sincronización inicial. No se subió este cambio; descarga un respaldo y avisa al administrador.");
+      } else {
+        console.error("TRENDIA Firestore save failed", error);
+        if (typeof window.toast === "function") window.toast("No se pudo sincronizar con Firebase. Tus datos siguen guardados localmente; descarga un respaldo.");
+        const pill = document.getElementById("syncPill");
+        if (pill) { pill.textContent = "● Sin sincronizar"; pill.classList.remove("online"); }
+      }
+    } finally {
+      saving = false;
+      if (saveQueued) { saveQueued = false; queueSave(); }
+    }
+  }
+  function queueSave() {
+    if (!cloudReady || applyingCloud || conflictDetected) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      const snapshot = localSnapshot();
+      writeSnapshot(snapshot, cloudRevision);
+    }, 900);
+  }
+  window.addEventListener("trendia:local-change", () => queueSave());
+  async function startCloud(user) {
+    authStatus.textContent = "Cargando datos compartidos de TRENDIA…";
+    const local = localSnapshot();
+    const cloud = await normalizeCloud();
+    const localHas = hasLocalData(local);
+  const cloudHas = hasLocalData(cloud.data);
+
+  // Never replace real local inventory with an empty Firestore structure.
+  if (!cloud.found || (localHas && !cloudHas)) {
+    if (localHas) {
+      const promptText = cloud.found
+        ? "Firebase no contiene todavía productos, lotes ni ventas. ¿Quieres importar a la nube los datos guardados en ESTE navegador? Aceptar = importar este inventario. Cancelar = no tocar datos y cerrar sesión. Descarga un respaldo si tienes dudas."
+        : "Firebase todavía no tiene datos. ¿Quieres importar a la nube los datos guardados en ESTE navegador? Aceptar = importar este inventario. Cancelar = no tocar datos y cerrar sesión. Descarga un respaldo si tienes dudas.";
+      const importLocal = confirm(promptText);
+      if (importLocal) {
+        cloudRevision = cloud.revision;
+        cloudReady = true;
+        await writeSnapshot(local, cloudRevision);
+        if (conflictDetected) throw new Error("No se pudo importar por conflicto de versión.");
+      } else {
+        authStatus.textContent = "Importación pausada. Descarga un respaldo antes de elegir qué datos conservar.";
+        await signOut(auth);
+        return false;
+      }
+    } else {
+      cloudRevision = cloud.revision;
+      cloudReady = true;
+      if (!cloud.found) await writeSnapshot(local, cloudRevision);
+    }
+  } else if (localHas && cloudHas && JSON.stringify(local) !== JSON.stringify({...local, ...cloud.data})) {
+    const useCloud = confirm("Hay datos locales y datos en Firebase. Aceptar = usar los datos compartidos de Firebase en este dispositivo. Cancelar = conservar este dispositivo e intentar subir sus datos como versión completa. Descarga un respaldo antes de decidir.");
+    if (useCloud) {
+      const merged = {...local, ...cloud.data};
+      applyCloudLocally(merged);
+      sessionStorage.setItem("trendia-reload-after-cloud", "1");
+      location.reload();
+      return false;
+    }
+    cloudRevision = cloud.revision;
+    cloudReady = true;
+    await writeSnapshot(local, cloudRevision);
+  } else if (cloudHas || cloud.found) {
+    const merged = {...local, ...cloud.data};
+    if (JSON.stringify(local) !== JSON.stringify(merged)) {
+      applyCloudLocally(merged);
+      sessionStorage.setItem("trendia-reload-after-cloud", "1");
+      location.reload();
+      return false;
+    }
+    cloudRevision = cloud.revision;
+    cloudReady = true;
+  }
+    if (!cloudReady) { cloudReady = true; }
+    authStatus.textContent = "";
+    const pill = document.getElementById("syncPill");
+    if (pill) { pill.textContent = "● Sincronizado"; pill.classList.add("online"); }
+    if (stopMetaListener) stopMetaListener();
+    stopMetaListener = onSnapshot(metaRef, snap => {
+      const revision = snap.exists() ? Number(snap.data().revision || 0) : 0;
+      if (cloudRevision !== null && revision !== cloudRevision && !saving) {
+        conflictDetected = true;
+        cloudReady = false;
+        const p = document.getElementById("syncPill");
+        if (p) { p.textContent = "● Cambios externos: recargar"; p.classList.remove("online"); }
+        if (typeof window.toast === "function") window.toast("Hay cambios desde otro dispositivo. Recarga antes de seguir editando para evitar sobrescribirlos.");
+      }
+    }, error => console.error("TRENDIA sync listener", error));
+    return true;
+  }
+  onAuthStateChanged(auth, async (user) => {
+    cloudReady = false;
+    conflictDetected = false;
+    if (stopMetaListener) { stopMetaListener(); stopMetaListener = null; }
+    if (user && allowedUserIds.has(user.uid)) {
+      try {
+        const ready = await startCloud(user);
+        if (ready && auth.currentUser && auth.currentUser.uid === user.uid) {
+          document.body.classList.add("authenticated");
+          logoutBtn.style.display = "inline-flex";
+        } else {
+          document.body.classList.remove("authenticated");
+          logoutBtn.style.display = "none";
+        }
+      } catch (error) {
+        console.error("TRENDIA cloud initialization", error);
+        authStatus.textContent = "No se pudieron cargar los datos compartidos. El panel sigue bloqueado para evitar cambios inseguros. Revisa las reglas de Firestore y vuelve a intentarlo.";
+        document.body.classList.remove("authenticated");
+        logoutBtn.style.display = "none";
+      }
+    } else {
+      document.body.classList.remove("authenticated");
+      logoutBtn.style.display = "none";
+      if (user) {
+        authStatus.textContent = "Esta cuenta no está autorizada para TRENDIA.";
+        try { await signOut(auth); } catch {}
+      } else {
+        authError.style.display = "none";
+        authStatus.textContent = "Inicia sesión con la cuenta autorizada de TRENDIA.";
+      }
+    }
+  });
+} catch (error) {
+  showError("No se pudo inicializar Firebase. Revisa la configuración de la aplicación.");
+  authStatus.textContent = "El panel permanece bloqueado por seguridad.";
+}
+</script>
+<script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];const money=n=>'S/ '+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};const uid=p=>p+'-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,5).toUpperCase();const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const defaults=()=>({products:[],lots:[],sales:[],customers:[],expenses:[],vendors:['David','María Emilia'],channels:['Marketplace','WhatsApp','TikTok','Instagram','Facebook','Referido','Otro'],expenseCategories:['Taxi','Combi / entrega','Viáticos','Decants','Frascos 5 ml','Frascos 10 ml','Atomizadores','Empaques','Publicidad','Comisiones','Otros'],paymentMethods:['Yape','Plin','Transferencia','Efectivo','Tarjeta'],settings:{business:'TRENDIA',currency:'PEN',costMethod:'average'},purchases:[],dashboardSnapshots:[]});let db=load();let page='dashboard',editId=null,modalMode='',selectedSaleItems=[],activeFilters={},dashboardMonth=today().slice(0,7);function load(){try{const stored=JSON.parse(localStorage.getItem('trendia-admin-v1')||'{}'),d={...defaults(),...stored};for(const key of ['products','lots','sales','customers','expenses','vendors','channels','expenseCategories','paymentMethods','purchases','dashboardSnapshots'])if(!Array.isArray(d[key]))d[key]=defaults()[key];d.products=d.products.map((p,i)=>({...p,sku:p.sku||'SKU-'+String(i+1).padStart(4,'0'),category:p.category||'',description:p.description||'',acquisitionPrice:Number(p.acquisitionPrice??d.lots.find(l=>l.productId===p.id)?.purchaseCost??0),status:p.status||'Activo',imageData:p.imageData||p.image||''}));
 d.lots=d.lots.map(l=>({...l,qty:Number(l.qty||0),sold:Number(l.sold||0),purchaseCost:Number(l.purchaseCost||0),salePrice:Number(l.salePrice??d.products.find(p=>p.id===l.productId)?.salePrice??0),freightTotal:Number(l.freightTotal||0),unitCost:Number(l.unitCost??(Number(l.purchaseCost||0)+Number(l.freightTotal||0)/Math.max(1,Number(l.qty||1))))}));d.sales=d.sales.map(s=>({...s,items:Array.isArray(s.items)?s.items:[]}));return d}catch{return defaults()}}
