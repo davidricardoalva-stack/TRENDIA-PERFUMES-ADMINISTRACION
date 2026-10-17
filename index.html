@@ -216,7 +216,7 @@ function saleNoteHTML(s){const t=saleTotals(s);t.subtotal=s.items.reduce((a,i)=>
 function saleNotePDF(id){const s=db.sales.find(x=>x.id===id);if(!s)return;const w=window.open('','_blank');if(!w){toast('Permite las ventanas emergentes para generar la nota.');return;}w.document.open();w.document.write(saleNoteHTML(s));w.document.close();}
 function sendSaleWhatsApp(id){
  const s=db.sales.find(x=>x.id===id);if(!s)return;
- const phone=String(s.phone||'').replace(/\\D/g,'');
+ const phone=String(s.phone||'').replace(/\D/g,'');
  if(!phone){toast('Esta venta no tiene teléfono del cliente.');return;}
  const items=(s.items||[]).map(i=>(String(i.name||'Producto').trim().toLocaleUpperCase('es-PE')+' × '+Number(i.qty||0))).filter(Boolean);
  const productsText=items.length?items.join(', '):'tu compra';
