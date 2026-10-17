@@ -216,24 +216,62 @@ function saleNoteHTML(s){const t=saleTotals(s);t.subtotal=s.items.reduce((a,i)=>
 function saleNotePDF(id){const s=db.sales.find(x=>x.id===id);if(!s)return;const w=window.open('','_blank');if(!w){toast('Permite las ventanas emergentes para generar la nota.');return;}w.document.open();w.document.write(saleNoteHTML(s));w.document.close();}
 function sendSaleWhatsApp(id){
  const s=db.sales.find(x=>x.id===id);if(!s)return;
- const phone=String(s.phone||'').replace(/\\D/g,'');
+ const phone=String(s.phone||'').replace(/\D/g,'');
  if(!phone){toast('Esta venta no tiene teléfono del cliente.');return;}
  const items=(s.items||[]).map(i=>(String(i.name||'Producto').trim().toLocaleUpperCase('es-PE')+' × '+Number(i.qty||0))).filter(Boolean);
  const productsText=items.length?items.join(', '):'tu compra';
  const total=money(saleTotals(s).revenue);
- const text='Hola '+(s.customerName||'')+', gracias por tu compra en TRENDIA. Adquiriste '+productsText+'. El total de tu compra es '+total+' ('+dateFmt(s.date)+'). Te compartimos tu nota de venta en PDF. ¡Gracias por tu preferencia!';
+ const text='Hola '+(s.customerName||'')+', gracias por tu compra en TRENDIA. Adquiriste '+productsText+'. El total de tu compra es '+total+' ('+dateFmt(s.date)+'). Te compartimos tu nota de venta. ¡Gracias por tu preferencia!';
  const whatsappPhone=phone.startsWith('51')?phone:'51'+phone;
  const waUrl='https://api.whatsapp.com/send/?phone='+whatsappPhone+'&text='+encodeURIComponent(text)+'&type=phone_number&app_absent=0';
- // Abrir la API oficial de WhatsApp con el mensaje prellenado y la nota en otra pestaña.
  const waWindow=window.open(waUrl,'_blank');
- const pdfWindow=window.open('','_blank');
- if(pdfWindow){
-   pdfWindow.document.open();pdfWindow.document.write(saleNoteHTML(s));pdfWindow.document.close();
-   try{pdfWindow.document.title='Nota de venta TRENDIA - '+productsText.slice(0,100)}catch(e){}
+ const noteWindow=window.open('','_blank');
+ if(noteWindow){
+   noteWindow.document.open();noteWindow.document.write(saleNoteHTML(s));noteWindow.document.close();
+   try{noteWindow.document.title='Nota de venta TRENDIA - '+productsText.slice(0,100)}catch(e){}
+   const addShareTools=()=>{
+     try{
+       const doc=noteWindow.document;
+       if(doc.getElementById('trendia-share-png'))return;
+       const actions=doc.querySelector('.actions'), article=doc.querySelector('.note');
+       if(!actions||!article)return;
+       const btn=doc.createElement('button');btn.id='trendia-share-png';btn.textContent='Compartir nota como imagen PNG';
+       btn.style.background='#30358c';btn.type='button';actions.insertBefore(btn,actions.firstChild);
+       const status=doc.createElement('span');status.style.cssText='font:12px Arial;color:#555;align-self:center';actions.appendChild(status);
+       const script=doc.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';script.crossOrigin='anonymous';
+       script.onload=()=>{status.textContent='Listo para compartir';};
+       script.onerror=()=>{status.textContent='No se pudo cargar el generador de imagen';};
+       doc.head.appendChild(script);
+       btn.addEventListener('click',async()=>{
+         btn.disabled=true;status.textContent='Preparando imagen…';
+         try{
+           if(!noteWindow.html2canvas)throw new Error('No se pudo cargar el generador de imagen. Revisa tu conexión e inténtalo otra vez.');
+           const canvas=await noteWindow.html2canvas(article,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
+           const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('No se pudo crear la imagen.')),'image/png'));
+           const file=new File([blob],'nota-venta-trendia-'+String(s.id||'venta').replace(/[^a-z0-9_-]/gi,'')+'.png',{type:'image/png'});
+           if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+             await navigator.share({files:[file],title:'Nota de venta TRENDIA',text:text});
+             status.textContent='Imagen compartida';
+           }else{
+             const url=URL.createObjectURL(blob), a=doc.createElement('a');a.href=url;a.download=file.name;doc.body.appendChild(a);a.click();a.remove();
+             status.textContent='PNG descargado. Adjunta la imagen en WhatsApp.';
+             if(!navigator.share)status.textContent='PNG descargado. Adjunta la imagen en WhatsApp.';
+             else status.textContent='Este dispositivo no permite adjuntar archivos desde compartir. PNG descargado; adjúntalo en WhatsApp.';
+             setTimeout(()=>URL.revokeObjectURL(url),60000);
+           }
+         }catch(err){
+           if(err&&err.name==='AbortError')status.textContent='Compartir cancelado.';
+           else {status.textContent=(err&&err.message)||'No se pudo generar la imagen.';toast('No se pudo compartir la imagen. Puedes usar “Imprimir / Guardar como PDF”.');}
+         }finally{btn.disabled=false;}
+       });
+     }catch(e){}
+   };
+   noteWindow.addEventListener('load',addShareTools,{once:true});
+   setTimeout(addShareTools,700);
  }
  if(!waWindow)toast('El navegador bloqueó WhatsApp. Permite las ventanas emergentes y vuelve a intentarlo.');
- else if(!pdfWindow)toast('WhatsApp está listo con el mensaje. El navegador bloqueó la nota PDF; usa el botón “Nota PDF”.');
- else toast('WhatsApp está listo con el mensaje. Guarda la nota de la otra pestaña como PDF y adjúntala antes de enviar.');
+ else if(!noteWindow)toast('WhatsApp está listo con el mensaje. El navegador bloqueó la nota; usa el botón “Nota PDF”.');
+ else toast('WhatsApp está listo. En la nota, pulsa “Compartir nota como imagen PNG” para compartirla o descargarla.');
 }
 function restoreData(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);const arrays=['products','lots','sales','customers','expenses'];for(const key of arrays)if(x[key]!==undefined&&!Array.isArray(x[key]))throw Error(`La sección ${key} no tiene un formato válido.`);if(!Array.isArray(x.products)||!Array.isArray(x.lots)||!Array.isArray(x.sales))throw Error('El archivo no parece ser un respaldo TRENDIA válido.');for(const l of x.lots){if(!l.id||!l.productId||!Number.isFinite(Number(l.qty))||Number(l.qty)<0||Number(l.sold||0)<0||Number(l.sold||0)>Number(l.qty))throw Error('Hay un lote inválido o con más unidades vendidas que las compradas. No se aplicaron cambios.')}for(const sale of x.sales){if(!sale.id||!Array.isArray(sale.items))throw Error('Hay una venta inválida. No se aplicaron cambios.')}if(!confirm('Restaurar reemplazará todos los datos actuales de este navegador. Descarga un respaldo previo si lo necesitas. ¿Continuar?'))return;const merged={...defaults(),...x};for(const key of arrays)if(!Array.isArray(merged[key]))merged[key]=[];if(!Array.isArray(merged.dashboardSnapshots))merged.dashboardSnapshots=[];merged.lots=merged.lots.map(l=>({...l,sold:Number(l.sold||0),purchaseCost:Number(l.purchaseCost||0),freightTotal:Number(l.freightTotal||0),unitCost:Number(l.unitCost??(Number(l.purchaseCost||0)+Number(l.freightTotal||0)/Math.max(1,Number(l.qty||1))))}));db=merged;if(!persist())throw Error('No se pudo guardar en el navegador. Descarga o revisa el almacenamiento.');render();toast('Respaldo restaurado correctamente.')}catch(err){toast('No se pudo restaurar: '+err.message)}finally{e.target.value=''}};r.readAsText(f)}
 
