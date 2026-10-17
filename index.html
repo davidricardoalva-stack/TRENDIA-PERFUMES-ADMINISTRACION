@@ -199,7 +199,7 @@ function restoreData(e){const f=e.target.files?.[0];if(!f)return;const r=new Fil
 /* Importación inicial de PERFUMERIA TRENDIA EXCEL.xlsx. Solo se ejecuta una vez por navegador. */
 (function importTrendiaOctoberWorkbook(){
  const marker='trendia-excel-october-2026-import-v1';
- try{if(localStorage.getItem(marker))return;
+ try{const importedLots=db.lots.filter(l=>String(l.note||'').includes('Importación Excel TRENDIA octubre 2026'));for(const l of importedLots)l.date='2026-10-16';const importedLotIds=new Set(importedLots.map(l=>l.id));db.purchases=db.purchases.map(p=>importedLotIds.has(p.id)?{...p,date:'2026-10-16'}:p);db.expenses=db.expenses.map(e=>(String(e.note||'').includes('Importación Excel TRENDIA octubre 2026')||String(e.note||'').includes('no se asignó costo unitario'))?{...e,date:'2026-10-16'}:e);if(localStorage.getItem(marker)){persist();return;}
  const existingSku=new Set(db.products.map(p=>String(p.sku||'').toUpperCase()));
  const byName=n=>db.products.find(p=>normText(p.name)===normText(n));
  const productRows=[
@@ -235,15 +235,15 @@ function restoreData(e){const f=e.target.files?.[0];if(!f)return;const r=new Fil
    const sold=sku==='011-02'?2:0;
    if(lotQty>0){
     const lotId=uid('lot');
-    db.lots.push({id:lotId,code:'EXCEL-202610-'+sku.replace('-',''),date:'2026-10-01',productId:p.id,qty:lotQty,sold,purchaseCost:0,salePrice,freightTotal:0,unitCost:0,supplier:'Excel TRENDIA',note:'Importación Excel TRENDIA octubre 2026. Costo de adquisición no indicado; completar manualmente.'});
+    db.lots.push({id:lotId,code:'EXCEL-202610-'+sku.replace('-',''),date:'2026-10-16',productId:p.id,qty:lotQty,sold,purchaseCost:0,salePrice,freightTotal:0,unitCost:0,supplier:'Excel TRENDIA',note:'Importación Excel TRENDIA octubre 2026. Costo de adquisición no indicado; completar manualmente.'});
     if(sku!=='011-02')db.purchases.push({id:lotId,date:'2026-10-01',productId:p.id,qty:lotQty,amount:0});
    }
   }
  }
  const expenseRows=[
-  ['2026-10-01','Inversión en mercadería','Pack de perfumes (inversión declarada en Excel; distribuir costo por producto)',1000,'Importación Excel TRENDIA octubre 2026; no se asignó costo unitario porque el archivo no lo detalla.'],
-  ['2026-10-01','Flete','Flete de entrada indicado en Excel',38,'Importación Excel TRENDIA octubre 2026.'],
-  ['2026-10-01','Taxi','Taxi indicado en Excel',5,'Importación Excel TRENDIA octubre 2026.']
+  ['2026-10-16','Inversión en mercadería','Pack de perfumes (inversión declarada en Excel; distribuir costo por producto)',1000,'Importación Excel TRENDIA octubre 2026; no se asignó costo unitario porque el archivo no lo detalla.'],
+  ['2026-10-16','Flete','Flete de entrada indicado en Excel',38,'Importación Excel TRENDIA octubre 2026.'],
+  ['2026-10-16','Taxi','Taxi indicado en Excel',5,'Importación Excel TRENDIA octubre 2026.']
  ];
  for(const [date,category,detail,amount,note] of expenseRows){
   if(!db.expenses.some(e=>e.note===note&&e.detail===detail))db.expenses.push({id:uid('gas'),date,category,detail,amount,qty:0,unitCost:0,vendor:'',payment:'Efectivo',note});
