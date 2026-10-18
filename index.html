@@ -266,7 +266,7 @@ function sendSaleWhatsApp(id){
  const greeting=greetings[Math.floor(chosen/punchlines.length)];
  const punchline=punchlines[chosen%punchlines.length];
  const thanksLine=thanks[(chosen*7+Math.floor(chosen/3))%thanks.length];
- const text=greeting+'\n\n🛍️ Tu compra: '+productsText+'\n💰 Total: '+total+'\n📅 Fecha: '+dateFmt(s.date)+'\n\n'+punchline+'\n\n📄 Te compartimos tu nota de venta. '+thanksLine+'\n\nY no te quedes fuera de las novedades y ofertas, ¡únete a nuestros grupos! 👇\n\n🛒 PRODUCTOS EN TENDENCIA\nhttps://chat.whatsapp.com/LFFvI4PwqiQ2lYOVvuBvsi\n\n💎 GRUPO DE PERFUMERÍA\nhttps://chat.whatsapp.com/IPDU9OCNQgdJCmwkSEmbd0\n\n📲 Síguenos en nuestras redes y mantente al día con TRENDIA.\n\nTRENDIA — Vive la tendencia. 🧡🔥';
+ const text=greeting+'\n🛍️ Tu compra: '+productsText+'\n💰 Total: '+total+'\n📅 Fecha: '+dateFmt(s.date)+'\n'+punchline+'\n📄 Te compartimos tu nota de venta. '+thanksLine+'\nY no te quedes fuera de las novedades y ofertas, ¡únete a nuestros grupos! 👇\n🛒 PRODUCTOS EN TENDENCIA\nhttps://chat.whatsapp.com/LFFvI4PwqiQ2lYOVvuBvsi\n💎 GRUPO DE PERFUMERÍA\nhttps://chat.whatsapp.com/IPDU9OCNQgdJCmwkSEmbd0\n📲 Síguenos en nuestras redes y mantente al día con TRENDIA.\nTRENDIA — Vive la tendencia. 🧡🔥';
  const whatsappPhone=phone.startsWith('51')?phone:'51'+phone;
  const waUrl='https://api.whatsapp.com/send/?phone='+whatsappPhone+'&text='+encodeURIComponent(text)+'&type=phone_number&app_absent=0';
  const waWindow=window.open(waUrl,'_blank');
