@@ -221,7 +221,52 @@ function sendSaleWhatsApp(id){
  const items=(s.items||[]).map(i=>(String(i.name||'Producto').trim().toLocaleUpperCase('es-PE')+' × '+Number(i.qty||0))).filter(Boolean);
  const productsText=items.length?items.join(', '):'tu compra';
  const total=money(saleTotals(s).revenue);
- const text='Hola '+(s.customerName||'')+', gracias por tu compra en TRENDIA. Adquiriste '+productsText+'. El total de tu compra es '+total+' ('+dateFmt(s.date)+'). Te compartimos tu nota de venta. ¡Gracias por tu preferencia!';
+ const customer=String(s.customerName||'hermanito').trim();
+ const greetings=[
+  '¡'+customer+' queridooo! 😎🔥 Gracias por comprar en TRENDIA, aquí sí tenemos buen gusto.',
+  '¡Habla, '+customer+'! 😏🧡 Esa elección tiene estilo y tú lo sabes.',
+  '¡'+customer+'! 🚀💥 Llegó el momento de oler rico y caminar con confianza.',
+  '¡Grande, '+customer+'! 🙌😎 Gracias por confiar en la familia TRENDIA.',
+  '¡Atención, '+customer+'! 👀🔥 Tu buen gusto acaba de quedar confirmado.',
+  '¡'+customer+', hermanito! 🤝😄 Gracias por hacer tu compra con nosotros.',
+  '¡Qué buena elección, '+customer+'! 😮‍💨💎 Así da gusto comprar.',
+  '¡Mi estimado/a '+customer+'! 😎✨ Hoy se compra con estilo.',
+  '¡'+customer+'! 🧡🛍️ Gracias por sumarte a la tendencia.',
+  '¡Esooo, '+customer+'! 🔥😏 Esa compra merece aplausos.',
+  '¡'+customer+' querido/a! 🥳💨 Hoy toca lucirse con buen aroma.',
+  '¡Oe, '+customer+'! 😄🔥 En TRENDIA sabemos reconocer el buen gusto.'
+ ];
+ const punchlines=[
+  'Con esa elección, vas a dejar tu presencia marcada sin decir ni una palabra 😏💨',
+  'Ahora toca oler rico y dejar que la curiosidad haga su trabajo 👀😉',
+  'Esa fragancia no habla por ti… ¡pero sí puede romper el hielo! 😂🔥',
+  'Prepárate para el clásico: “Hermanito, ¿qué perfume estás usando?” 😎💎',
+  'Un buen aroma es como una buena entrada: ¡se nota desde el primer momento! 💥',
+  'Que no te sorprenda si alguien se acerca solo para preguntar por el aroma 😂🌹',
+  'Elegancia activada, presencia encendida y buen gusto confirmado 🥶✨',
+  'La misión ahora es sencilla: úsalo, disfrútalo y deja que llegue el cumplido 😏🎯',
+  'Tú pon la actitud; el perfume se encarga de completar el outfit 😎👔',
+  'No prometemos conquistar corazones, pero oler bien ya es empezar con ventaja 😂❤️'
+ ];
+ const thanks=[
+  '¡Gracias por elegirnos y apoyar nuestro emprendimiento! 🧡',
+  'Tu confianza nos motiva a seguir trayendo novedades para ti. 🙌',
+  'Gracias por preferir TRENDIA. ¡Aquí te esperamos para la próxima! 🤝',
+  '¡Qué gusto atenderte! Estamos para ayudarte a encontrar tu próxima joyita. 💎',
+  'Gracias por ser parte de esta comunidad que vive la tendencia. 🔥',
+  'Tu compra nos ayuda a crecer. ¡Gracias de corazón! ❤️',
+  '¡Compra fina, cliente fino! Gracias por confiar en nosotros. 😎',
+  'Nos alegra ser parte de tu elección. ¡Disfrútalo muchísimo! 🥳',
+  'Gracias por darnos la oportunidad de atenderte. ¡Volvemos pronto! 🛍️',
+  '¡Seguimos trayendo cositas buenas para gente con buen gusto! 🧡'
+ ];
+ const n=Math.floor(Math.random()*greetings.length* punchlines.length);
+ let chosen=n;
+ try{const prev=Number(localStorage.getItem('trendia_last_whatsapp_template'));if(chosen===prev)chosen=(chosen+1+Math.floor(Math.random()*(greetings.length*punchlines.length-1)))%(greetings.length*punchlines.length);localStorage.setItem('trendia_last_whatsapp_template',String(chosen));}catch(e){}
+ const greeting=greetings[Math.floor(chosen/punchlines.length)];
+ const punchline=punchlines[chosen%punchlines.length];
+ const thanksLine=thanks[(chosen*7+Math.floor(chosen/3))%thanks.length];
+ const text=greeting+'\n\n🛍️ Tu compra: '+productsText+'\n💰 Total: '+total+'\n📅 Fecha: '+dateFmt(s.date)+'\n\n'+punchline+'\n\n📄 Te compartimos tu nota de venta. '+thanksLine+'\n\nY no te quedes fuera de las novedades y ofertas, ¡únete a nuestros grupos! 👇\n\n🛒 PRODUCTOS EN TENDENCIA\nhttps://chat.whatsapp.com/LFFvI4PwqiQ2lYOVvuBvsi\n\n💎 GRUPO DE PERFUMERÍA\nhttps://chat.whatsapp.com/IPDU9OCNQgdJCmwkSEmbd0\n\n📲 Síguenos en nuestras redes y mantente al día con TRENDIA.\n\nTRENDIA — Vive la tendencia. 🧡🔥';
  const whatsappPhone=phone.startsWith('51')?phone:'51'+phone;
  const waUrl='https://api.whatsapp.com/send/?phone='+whatsappPhone+'&text='+encodeURIComponent(text)+'&type=phone_number&app_absent=0';
  const waWindow=window.open(waUrl,'_blank');
@@ -255,8 +300,6 @@ function sendSaleWhatsApp(id){
            }else{
              const url=URL.createObjectURL(blob), a=doc.createElement('a');a.href=url;a.download=file.name;doc.body.appendChild(a);a.click();a.remove();
              status.textContent='PNG descargado. Adjunta la imagen en WhatsApp.';
-             if(!navigator.share)status.textContent='PNG descargado. Adjunta la imagen en WhatsApp.';
-             else status.textContent='Este dispositivo no permite adjuntar archivos desde compartir. PNG descargado; adjúntalo en WhatsApp.';
              setTimeout(()=>URL.revokeObjectURL(url),60000);
            }
          }catch(err){
@@ -271,7 +314,7 @@ function sendSaleWhatsApp(id){
  }
  if(!waWindow)toast('El navegador bloqueó WhatsApp. Permite las ventanas emergentes y vuelve a intentarlo.');
  else if(!noteWindow)toast('WhatsApp está listo con el mensaje. El navegador bloqueó la nota; usa el botón “Nota PDF”.');
- else toast('WhatsApp está listo. En la nota, pulsa “Compartir nota como imagen PNG” para compartirla o descargarla.');
+ else toast('WhatsApp está listo con un mensaje aleatorio. En la nota puedes compartir también la imagen PNG.');
 }
 function restoreData(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);const arrays=['products','lots','sales','customers','expenses'];for(const key of arrays)if(x[key]!==undefined&&!Array.isArray(x[key]))throw Error(`La sección ${key} no tiene un formato válido.`);if(!Array.isArray(x.products)||!Array.isArray(x.lots)||!Array.isArray(x.sales))throw Error('El archivo no parece ser un respaldo TRENDIA válido.');for(const l of x.lots){if(!l.id||!l.productId||!Number.isFinite(Number(l.qty))||Number(l.qty)<0||Number(l.sold||0)<0||Number(l.sold||0)>Number(l.qty))throw Error('Hay un lote inválido o con más unidades vendidas que las compradas. No se aplicaron cambios.')}for(const sale of x.sales){if(!sale.id||!Array.isArray(sale.items))throw Error('Hay una venta inválida. No se aplicaron cambios.')}if(!confirm('Restaurar reemplazará todos los datos actuales de este navegador. Descarga un respaldo previo si lo necesitas. ¿Continuar?'))return;const merged={...defaults(),...x};for(const key of arrays)if(!Array.isArray(merged[key]))merged[key]=[];if(!Array.isArray(merged.dashboardSnapshots))merged.dashboardSnapshots=[];merged.lots=merged.lots.map(l=>({...l,sold:Number(l.sold||0),purchaseCost:Number(l.purchaseCost||0),freightTotal:Number(l.freightTotal||0),unitCost:Number(l.unitCost??(Number(l.purchaseCost||0)+Number(l.freightTotal||0)/Math.max(1,Number(l.qty||1))))}));db=merged;if(!persist())throw Error('No se pudo guardar en el navegador. Descarga o revisa el almacenamiento.');render();toast('Respaldo restaurado correctamente.')}catch(err){toast('No se pudo restaurar: '+err.message)}finally{e.target.value=''}};r.readAsText(f)}
 
